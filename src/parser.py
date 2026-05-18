@@ -201,11 +201,20 @@ class Parser:
     def parse_stmt(self):
         # Hint: peek at self.peek().kind and dispatch. LBRACE -> Block(parse_braced_stmts()).
         # If the next token is `{`, parse the braced statements and wrap them in Block.
+        if self.check(L.LBRACE):
+            return Block(self.parse_braced_stmts())
+
         # If the next token is `let`, call the completed parse_let helper.
+        if self.check(L.LET):
+            return self.parse_let()
+
         # If the next token is `if`, call parse_if.
         # If the next token is `while`, call parse_while.
         # If the next token is `return`, call parse_return.
         # If the next token is `print`, call parse_print.
+        if self.check(L.PRINT):
+            return self.parse_print()
+
         # Otherwise parse either an assignment statement or an expression statement.
         raise NotImplementedError("parse_stmt (M2)")
 
@@ -242,11 +251,23 @@ class Parser:
     # stmt = 'print' '(' expr ')' ';'
     def parse_print(self):
         # Consume `print`.
+        self.expect(L.PRINT)
+
         # Consume `(`.
+        self.expect(L.LPAREN)
+
         # Parse the expression to print.
+        expr = self.parse_expr()
+
         # Consume `)`.
+        self.expect(L.RPAREN)
+
         # Consume the trailing `;`.
+        self.expect(L.SEMI)
+
         # Return a Print node containing the expression.
+        return Print(expr)
+
         raise NotImplementedError("parse_print (M2)")
 
     # stmt = IDENT '=' expr ';'  |  expr ';'
@@ -291,6 +312,8 @@ class Parser:
     # logicAnd = equality ('&&' equality)*
     def parse_and(self):
         # Parse the left operand with the next tighter precedence method.
+        return self.parse_equality()
+
         # While the next token is `&&`, consume it and parse the right operand.
         # Wrap each pair in a Binary("&&", left, right) node.
         # Return the final left-associated expression tree.
@@ -299,6 +322,8 @@ class Parser:
     # equality = compare (('==' | '!=') compare)*
     def parse_equality(self):
         # Parse the left operand with parse_comparison.
+        return self.parse_comparison()
+
         # While the next token is `==` or `!=`, save the operator text.
         # Tip: the token's `.text` field already holds the operator string
         # ("==", "!=", "<", "+", etc.), so `op = self.advance().text` works.
@@ -310,6 +335,8 @@ class Parser:
     # compare = term (('<' | '<=' | '>' | '>=') term)*
     def parse_comparison(self):
         # Parse the left operand with parse_term.
+        return self.parse_term()
+
         # While the next token is `<`, `<=`, `>`, or `>=`, save the operator text.
         # Consume the operator and parse the right operand with parse_term.
         # Wrap the pieces in a Binary(op, left, right) node.
@@ -319,6 +346,8 @@ class Parser:
     # term = factor (('+' | '-') factor)*
     def parse_term(self):
         # Parse the left operand with parse_factor.
+        return self.parse_factor()
+
         # While the next token is `+` or `-`, save the operator text.
         # Consume the operator and parse the right operand with parse_factor.
         # Wrap the pieces in a Binary(op, left, right) node.
@@ -328,6 +357,8 @@ class Parser:
     # factor = unary (('*' | '/') unary)*
     def parse_factor(self):
         # Parse the left operand with parse_unary.
+        return self.parse_unary()
+
         # While the next token is `*` or `/`, save the operator text.
         # Consume the operator and parse the right operand with parse_unary.
         # Wrap the pieces in a Binary(op, left, right) node.
@@ -340,6 +371,8 @@ class Parser:
         # Recursively parse the operand with parse_unary.
         # Return a Unary node for the prefix operator case.
         # Otherwise parse and return a call expression.
+        return self.parse_call()
+
         raise NotImplementedError("parse_unary (M2)")
 
     # call = primary ('(' args? ')')?
@@ -351,16 +384,25 @@ class Parser:
         # Consume the closing `)`.
         # Return a Call node with the function name and argument list.
         # If no call pattern is present, return parse_primary().
+        return self.parse_primary()
+
         raise NotImplementedError("parse_call (M2)")
 
     # primary = NUMBER | 'true' | 'false' | IDENT | '(' expr ')'
     def parse_primary(self):
         # If the next token is NUMBER, consume it and return Number(token.value).
+        if self.check(L.NUMBER):
+            tok = self.advance()
+            return Number(tok.value)
+
         # If the next token is `true`, consume it and return Bool(True).
         # If the next token is `false`, consume it and return Bool(False).
         # If the next token is IDENT, consume it and return Var(token.text).
         # If the next token is `(`, consume it, parse an expression, consume `)`, and return the expression.
         # Otherwise raise SyntaxError that names the unexpected token and line.
+        tok = self.peek()
+        raise SyntaxError(f"line {tok.line}: expected expression, got {tok.kind}")
+
         raise NotImplementedError("parse_primary (M2)")
 
 
